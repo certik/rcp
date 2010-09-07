@@ -29,11 +29,11 @@ SET(SOURCES
   #Teuchos_TableEntry.cpp
   #Teuchos_TableFormat.cpp
   #Teuchos_TabularOutputter.cpp
-  #Teuchos_TestForException.cpp
+  Teuchos_TestForException.cpp
   #Teuchos_TestingHelpers.cpp
   #Teuchos_Time.cpp
   #Teuchos_TimeMonitor.cpp
-  #Teuchos_TypeNameTraits.cpp
+  Teuchos_TypeNameTraits.cpp
   #Teuchos_UnitTestBase.cpp
   #Teuchos_UnitTestRepository.cpp
   #Teuchos_Utils.cpp
@@ -42,7 +42,7 @@ SET(SOURCES
   #Teuchos_VerbosityLevel.cpp
   #Teuchos_VerbosityLevelCommandLineProcessorHelpers.cpp
   #Teuchos_Workspace.cpp
-  #Teuchos_dyn_cast.cpp
+  Teuchos_dyn_cast.cpp
   )
 
 ADD_LIBRARY(
