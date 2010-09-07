@@ -3,14 +3,19 @@
 
 using Teuchos::RCP;
 using Teuchos::rcp;
+using Teuchos::null;
 
 class A {
+    int a;
 public:
-    A() {}
+    A() {
+        a = 0;
+    }
     ~A() {}
 
     void test() {
-        printf("A.test()\n");
+        printf("A.test(), a=%d\n", this->a);
+        this->a++;
     }
 };
 
@@ -20,9 +25,17 @@ RCP<A> create_A() {
     return a;
 }
 
+RCP<A> create_null() {
+    return null;
+}
+
 int main()
 {
     RCP<A> a = create_A();
+    // works:
     a->test();
+    RCP<A> b = create_null();
+    // will raise an exception:
+    b->test();
     return 0;
 }
