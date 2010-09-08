@@ -43,6 +43,8 @@ SET(SOURCES
   #Teuchos_VerbosityLevelCommandLineProcessorHelpers.cpp
   #Teuchos_Workspace.cpp
   Teuchos_dyn_cast.cpp
+
+  stacktrace.cpp
   )
 
 ADD_LIBRARY(
@@ -50,3 +52,5 @@ ADD_LIBRARY(
   SHARED
   ${SOURCES}
 )
+
+target_link_libraries(teuchosmm iberty bfd)
