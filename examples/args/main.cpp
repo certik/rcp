@@ -102,8 +102,8 @@ int main(int argc, char* argv[])
     ClientB b1, b2;
     ClientC c(utilityFactory, shareUtility);
     // Do some stuff
-    c.h(&b1);
-    c.h(&b2);
+    c.h(Ptr<ClientB>(&b1));
+    c.h(Ptr<ClientB>(&b2));
     b1.g(a);
     b2.g(a);
 }
