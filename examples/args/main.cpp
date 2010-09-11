@@ -4,6 +4,7 @@
 using Teuchos::RCP;
 using Teuchos::rcp; // Warning! This can be dangerous and is not to be used in general!
 using Teuchos::Ptr;
+using Teuchos::outArg;
 
 // Abstract interfaces
 class UtilityBase {
@@ -102,8 +103,8 @@ int main(int argc, char* argv[])
     ClientB b1, b2;
     ClientC c(utilityFactory, shareUtility);
     // Do some stuff
-    c.h(Ptr<ClientB>(&b1));
-    c.h(Ptr<ClientB>(&b2));
+    c.h(outArg(b1));
+    c.h(outArg(b2));
     b1.g(a);
     b2.g(a);
 }
