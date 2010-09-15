@@ -34,7 +34,7 @@
 */
 
 #include "Teuchos_TypeNameTraits.hpp"
-#include "stacktrace.h"
+#include "Teuchos_stacktrace.hpp"
 
 /*! \defgroup TestForException_grp Utility code for throwing exceptions and setting breakpoints. 
 \ingroup teuchos_language_support_grp

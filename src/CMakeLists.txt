@@ -44,7 +44,7 @@ SET(SOURCES
   #Teuchos_Workspace.cpp
   Teuchos_dyn_cast.cpp
 
-  stacktrace.cpp
+  Teuchos_stacktrace.cpp
   )
 
 ADD_LIBRARY(
