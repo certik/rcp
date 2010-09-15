@@ -300,8 +300,13 @@ std::string backtrace2str(void *const *buffer, int size)
 		addr = (bfd_vma)((long unsigned)(buffer[x])
                 - (long unsigned)(match.base));
 		if (match.file && strlen(match.file))
+            // This happens for shared libraries (like /lib/libc.so.6, or any
+            // other shared library that the project uses). 'match.file' then
+            // contains the full path to the .so library.
 			final += process_file(match.file, &addr);
 		else
+            // The 'addr' is from the current executable binary, which one can
+            // find at '/proc/self/exe'. So we'll use that.
 			final += process_file("/proc/self/exe", &addr);
 	}
 
