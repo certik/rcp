@@ -53,4 +53,4 @@ ADD_LIBRARY(
   ${SOURCES}
 )
 
-target_link_libraries(teuchosmm iberty bfd)
+target_link_libraries(teuchosmm bfd)
