@@ -16,8 +16,7 @@
 /* These class is used to pass information between
    translate_addresses_buf and find_address_in_section.  */
 
-class Data {
-public:
+struct Data {
     bfd_vma pc;
     const char *filename;
     const char *functionname;
@@ -193,22 +192,22 @@ static void slurp_symtab(bfd * abfd, Data *data)
 static std::string translate_addresses_buf(bfd *abfd, bfd_vma *addr)
 {
     std::string s;
-    Data *data = new Data();
+    Data data;
     // Read the symbols
-	slurp_symtab(abfd, data);
-    data->pc = addr[0];
-    data->found = false;
-    bfd_map_over_sections(abfd, find_address_in_section, data);
-    if (!data->found) {
+	slurp_symtab(abfd, &data);
+    data.pc = addr[0];
+    data.found = false;
+    bfd_map_over_sections(abfd, find_address_in_section, &data);
+    if (!data.found) {
         s = format("[0x%llx] \?\?() \?\?:0", (long long unsigned int) addr[0]);
     } else {
-        std::string name=demangle_function_name(data->functionname);
+        std::string name=demangle_function_name(data.functionname);
         s = format("  File \"%s\", line %u, in %s",
-                data->filename ? data->filename : "??", data->line,
+                data.filename ? data.filename : "??", data.line,
                 name.c_str());
-        if (data->filename) {
-            std::string line_text=read_line_from_file(data->filename,
-                    data->line);
+        if (data.filename) {
+            std::string line_text=read_line_from_file(data.filename,
+                    data.line);
             if (line_text != "") {
                 s += "\n    ";
                 s += line_text;
@@ -216,11 +215,10 @@ static std::string translate_addresses_buf(bfd *abfd, bfd_vma *addr)
         }
     }
     // cleanup
-	if (data->syms != NULL) {
-		free(data->syms);
-		data->syms = NULL;
+	if (data.syms != NULL) {
+		free(data.syms);
+		data.syms = NULL;
 	}
-    delete data;
     s += "\n";
 	return s;
 }
