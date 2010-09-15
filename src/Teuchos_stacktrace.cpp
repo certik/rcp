@@ -8,6 +8,7 @@
 
 #include <cxxabi.h>
 #include <string>
+#include <iostream>
 #include <signal.h>
 
 #define fatal(a) exit(1)
@@ -332,17 +333,16 @@ std::string get_backtrace()
 }
 
 /* Obtain a backtrace and print it to stdout. */
-void show_backtrace (void)
+void show_backtrace()
 {
-    std::string s=get_backtrace();
-    printf("%s", s.c_str());
+    std::cout << get_backtrace();
 }
 
 void _segfault_callback_print_stack(int sig_num)
 {
-    printf("\nSegfault caught. Printing stacktrace:\n\n");
+    std::cout << "\nSegfault caught. Printing stacktrace:\n\n";
     show_backtrace();
-    printf("\nDone. Exiting the program.\n");
+    std::cout << "\nDone. Exiting the program.\n";
     // Deregister our abort callback:
     signal(SIGABRT, SIG_DFL);
     abort();
@@ -350,9 +350,9 @@ void _segfault_callback_print_stack(int sig_num)
 
 void _abort_callback_print_stack(int sig_num)
 {
-    printf("\nAbort caught. Printing stacktrace:\n\n");
+    std::cout << "\nAbort caught. Printing stacktrace:\n\n";
     show_backtrace();
-    printf("\nDone.\n");
+    std::cout << "\nDone.\n";
 }
 
 void print_stack_on_segfault()
