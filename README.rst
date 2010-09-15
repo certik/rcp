@@ -40,10 +40,3 @@ first to see what it is doing, then compile it and run it::
 
     Teuchos::RCP<A> : You can not call operator->() or operator*() if getRawPtr()==0!
     Aborted
-
-
-TODO
-----
-
-Embed the stacktrace into the exception, polish the stacktrace.cpp so that it
-doesn't leak.
