@@ -157,20 +157,21 @@ static void process_section(bfd *abfd, asection *section, void *_data)
 
 /* Loads the symbol table into 'data->symbol_table'.  */
 
-static void slurp_symtab(bfd * abfd, line_data *data)
+static void load_symbol_table(bfd *abfd, line_data *data)
 {
-    long symcount;
-    unsigned int size;
-
     if ((bfd_get_file_flags(abfd) & HAS_SYMS) == 0)
+        // If we don't have any symbols, return
         return;
 
     void **tmp = (void **) &(data->symbol_table);
-    symcount = bfd_read_minisymbols(abfd, false, tmp, &size);
-    if (symcount == 0)
-        symcount = bfd_read_minisymbols(abfd, true /* dynamic */, tmp, &size);
+    long n_symbols;
+    unsigned int symbol_size;
+    n_symbols = bfd_read_minisymbols(abfd, false, tmp, &symbol_size);
+    if (n_symbols == 0)
+        // dynamic
+        n_symbols = bfd_read_minisymbols(abfd, true, tmp, &symbol_size);
 
-    if (symcount < 0)
+    if (n_symbols < 0)
         fatal("bfd_read_minisymbols() failed");
 }
 
@@ -188,7 +189,7 @@ static std::string translate_addresses_buf(bfd *abfd, bfd_vma *addr)
     std::string s;
     line_data data;
     // Read the symbols
-    slurp_symtab(abfd, &data);
+    load_symbol_table(abfd, &data);
     data.addr = addr[0];
     data.line_found = false;
     bfd_map_over_sections(abfd, process_section, &data);
