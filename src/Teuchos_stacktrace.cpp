@@ -51,7 +51,7 @@ struct Data {
     const char *functionname;
     unsigned int line;
     int found;
-    asymbol **syms;		/* Symbol table.  */
+    asymbol **syms;     /* Symbol table.  */
 };
 
 /*
@@ -127,46 +127,46 @@ static void find_address_in_section(bfd *abfd, asection *section,
         void *_data)
 {
     Data *data = (Data*)_data;
-	bfd_vma vma;
-	bfd_size_type size;
+    bfd_vma vma;
+    bfd_size_type size;
 
-	if (data->found)
-		return;
+    if (data->found)
+        return;
 
-	if ((bfd_get_section_flags(abfd, section) & SEC_ALLOC) == 0)
-		return;
+    if ((bfd_get_section_flags(abfd, section) & SEC_ALLOC) == 0)
+        return;
 
-	vma = bfd_get_section_vma(abfd, section);
-	if (data->pc < vma)
-		return;
+    vma = bfd_get_section_vma(abfd, section);
+    if (data->pc < vma)
+        return;
 
-	size = bfd_section_size(abfd, section);
-	if (data->pc >= vma + size)
-		return;
+    size = bfd_section_size(abfd, section);
+    if (data->pc >= vma + size)
+        return;
 
     // Originally there was "pc-vma", but sometimes the bfd_find_nearest_line
     // returns the next line after the correct one. "pc-vma-1" seems to produce
     // correct line numbers:
-	data->found = bfd_find_nearest_line(abfd, section, data->syms, data->pc - vma - 1,
-				      &data->filename, &data->functionname, &data->line);
+    data->found = bfd_find_nearest_line(abfd, section, data->syms, data->pc - vma - 1,
+                      &data->filename, &data->functionname, &data->line);
 }
 
 /* Loads the symbol table into the global variable 'syms'.  */
 
 static void slurp_symtab(bfd * abfd, Data *data)
 {
-	long symcount;
-	unsigned int size;
+    long symcount;
+    unsigned int size;
 
-	if ((bfd_get_file_flags(abfd) & HAS_SYMS) == 0)
-		return;
+    if ((bfd_get_file_flags(abfd) & HAS_SYMS) == 0)
+        return;
 
     void **tmp = (void **) &(data->syms);
-	symcount = bfd_read_minisymbols(abfd, false, tmp, &size);
-	if (symcount == 0)
-		symcount = bfd_read_minisymbols(abfd, true /* dynamic */, tmp, &size);
+    symcount = bfd_read_minisymbols(abfd, false, tmp, &size);
+    if (symcount == 0)
+        symcount = bfd_read_minisymbols(abfd, true /* dynamic */, tmp, &size);
 
-	if (symcount < 0)
+    if (symcount < 0)
         fatal("bfd_read_minisymbols() failed");
 }
 
@@ -184,7 +184,7 @@ static std::string translate_addresses_buf(bfd *abfd, bfd_vma *addr)
     std::string s;
     Data data;
     // Read the symbols
-	slurp_symtab(abfd, &data);
+    slurp_symtab(abfd, &data);
     data.pc = addr[0];
     data.found = false;
     bfd_map_over_sections(abfd, find_address_in_section, &data);
@@ -205,41 +205,41 @@ static std::string translate_addresses_buf(bfd *abfd, bfd_vma *addr)
         }
     }
     // cleanup
-	if (data.syms != NULL) {
-		free(data.syms);
-		data.syms = NULL;
-	}
+    if (data.syms != NULL) {
+        free(data.syms);
+        data.syms = NULL;
+    }
     s += "\n";
-	return s;
+    return s;
 }
 
 struct file_match {
-	const char *file;
-	void *address;
-	void *base;
-	void *hdr;
+    const char *file;
+    void *address;
+    void *base;
+    void *hdr;
 };
 
 static int find_matching_file(struct dl_phdr_info *info,
-		size_t size, void *data)
+        size_t size, void *data)
 {
-	struct file_match *match = (struct file_match *)data;
-	/* This code is modeled from Gfind_proc_info-lsb.c:callback() from libunwind */
-	long n;
-	const ElfW(Phdr) *phdr;
-	ElfW(Addr) load_base = info->dlpi_addr;
-	phdr = info->dlpi_phdr;
-	for (n = info->dlpi_phnum; --n >= 0; phdr++) {
-		if (phdr->p_type == PT_LOAD) {
-			ElfW(Addr) vaddr = phdr->p_vaddr + load_base;
-			if ((long unsigned)(match->address) >= vaddr && (long unsigned)(match->address) < vaddr + phdr->p_memsz) {
-				/* we found a match */
-				match->file = info->dlpi_name;
-				match->base = (void*)(info->dlpi_addr);
-			}
-		}
-	}
-	return 0;
+    struct file_match *match = (struct file_match *)data;
+    /* This code is modeled from Gfind_proc_info-lsb.c:callback() from libunwind */
+    long n;
+    const ElfW(Phdr) *phdr;
+    ElfW(Addr) load_base = info->dlpi_addr;
+    phdr = info->dlpi_phdr;
+    for (n = info->dlpi_phnum; --n >= 0; phdr++) {
+        if (phdr->p_type == PT_LOAD) {
+            ElfW(Addr) vaddr = phdr->p_vaddr + load_base;
+            if ((long unsigned)(match->address) >= vaddr && (long unsigned)(match->address) < vaddr + phdr->p_memsz) {
+                /* we found a match */
+                match->file = info->dlpi_name;
+                match->base = (void*)(info->dlpi_addr);
+            }
+        }
+    }
+    return 0;
 }
 
 
@@ -248,22 +248,22 @@ static int find_matching_file(struct dl_phdr_info *info,
 static std::string process_file(const char *file_name, bfd_vma *addr)
 {
     // Initialize 'abfd' and do some sanity checks
-	bfd *abfd;
-	abfd = bfd_openr(file_name, NULL);
-	if (abfd == NULL)
+    bfd *abfd;
+    abfd = bfd_openr(file_name, NULL);
+    if (abfd == NULL)
         fatal("bfd_openr() failed");
-	if (bfd_check_format(abfd, bfd_archive))
-		fatal("Cannot get addresses from archive");
-	char **matching;
-	if (!bfd_check_format_matches(abfd, bfd_object, &matching))
+    if (bfd_check_format(abfd, bfd_archive))
+        fatal("Cannot get addresses from archive");
+    char **matching;
+    if (!bfd_check_format_matches(abfd, bfd_object, &matching))
         fatal("bfd_check_format_matches() failed");
 
 
     // Get nice representation of each address
     std::string s = translate_addresses_buf(abfd, addr);
 
-	bfd_close(abfd);
-	return s;
+    bfd_close(abfd);
+    return s;
 }
 
 /*
@@ -275,31 +275,31 @@ static std::string process_file(const char *file_name, bfd_vma *addr)
    */
 std::string backtrace2str(void *const *buffer, int size)
 {
-	int stack_depth = size - 1;
-	int x;
+    int stack_depth = size - 1;
+    int x;
 
     std::string final;
 
-	bfd_init();
-	for(x=stack_depth; x>=0; x--) {
-		struct file_match match;
+    bfd_init();
+    for(x=stack_depth; x>=0; x--) {
+        struct file_match match;
         match.address = buffer[x];
-		bfd_vma addr;
-		dl_iterate_phdr(find_matching_file, &match);
-		addr = (bfd_vma)((long unsigned)(buffer[x])
+        bfd_vma addr;
+        dl_iterate_phdr(find_matching_file, &match);
+        addr = (bfd_vma)((long unsigned)(buffer[x])
                 - (long unsigned)(match.base));
-		if (match.file && strlen(match.file))
+        if (match.file && strlen(match.file))
             // This happens for shared libraries (like /lib/libc.so.6, or any
             // other shared library that the project uses). 'match.file' then
             // contains the full path to the .so library.
-			final += process_file(match.file, &addr);
-		else
+            final += process_file(match.file, &addr);
+        else
             // The 'addr' is from the current executable binary, which one can
             // find at '/proc/self/exe'. So we'll use that.
-			final += process_file("/proc/self/exe", &addr);
-	}
+            final += process_file("/proc/self/exe", &addr);
+    }
 
-	return final;
+    return final;
 }
 
 
