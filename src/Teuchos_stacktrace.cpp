@@ -45,13 +45,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /* These class is used to pass information between
    translate_addresses_buf and find_address_in_section.  */
 
-struct Data {
-    bfd_vma pc;
+struct line_data {
+    bfd_vma addr;
     const char *filename;
     const char *functionname;
     unsigned int line;
-    int found;
-    asymbol **syms;     /* Symbol table.  */
+    int line_found;
+    asymbol **symbol_table;     /* Symbol table.  */
 };
 
 /*
@@ -121,39 +121,43 @@ std::string demangle_function_name(const char *name)
 }
 
 /* Look for an address in a section.  This is called via
-   bfd_map_over_sections.  */
+   bfd_map_over_sections over all sections in abfd.
 
-static void find_address_in_section(bfd *abfd, asection *section,
-        void *_data)
+   If the correct line is found, store the result in 'data' and set
+   data->line_found, so that subsequent calls to process_section exit
+   immediately.
+ */
+
+static void process_section(bfd *abfd, asection *section, void *_data)
 {
-    Data *data = (Data*)_data;
-    bfd_vma vma;
-    bfd_size_type size;
-
-    if (data->found)
+    line_data *data = (line_data*)_data;
+    if (data->line_found)
+        // If we already found the line, exit
         return;
-
     if ((bfd_get_section_flags(abfd, section) & SEC_ALLOC) == 0)
         return;
 
-    vma = bfd_get_section_vma(abfd, section);
-    if (data->pc < vma)
+    bfd_vma vma = bfd_get_section_vma(abfd, section);
+    if (data->addr < vma)
+        // If the addr lies above the section, exit
         return;
 
-    size = bfd_section_size(abfd, section);
-    if (data->pc >= vma + size)
+    bfd_size_type size = bfd_section_size(abfd, section);
+    if (data->addr >= vma + size)
+        // If the addr lies below the section, exit
         return;
 
-    // Originally there was "pc-vma", but sometimes the bfd_find_nearest_line
-    // returns the next line after the correct one. "pc-vma-1" seems to produce
-    // correct line numbers:
-    data->found = bfd_find_nearest_line(abfd, section, data->syms, data->pc - vma - 1,
-                      &data->filename, &data->functionname, &data->line);
+    // Calculate the correct offset of our line in the section
+    bfd_vma offset = data->addr - vma - 1;
+
+    // Finds the line corresponding to the offset
+    data->line_found = bfd_find_nearest_line(abfd, section, data->symbol_table,
+            offset, &data->filename, &data->functionname, &data->line);
 }
 
-/* Loads the symbol table into the global variable 'syms'.  */
+/* Loads the symbol table into 'data->symbol_table'.  */
 
-static void slurp_symtab(bfd * abfd, Data *data)
+static void slurp_symtab(bfd * abfd, line_data *data)
 {
     long symcount;
     unsigned int size;
@@ -161,7 +165,7 @@ static void slurp_symtab(bfd * abfd, Data *data)
     if ((bfd_get_file_flags(abfd) & HAS_SYMS) == 0)
         return;
 
-    void **tmp = (void **) &(data->syms);
+    void **tmp = (void **) &(data->symbol_table);
     symcount = bfd_read_minisymbols(abfd, false, tmp, &size);
     if (symcount == 0)
         symcount = bfd_read_minisymbols(abfd, true /* dynamic */, tmp, &size);
@@ -182,13 +186,13 @@ static void slurp_symtab(bfd * abfd, Data *data)
 static std::string translate_addresses_buf(bfd *abfd, bfd_vma *addr)
 {
     std::string s;
-    Data data;
+    line_data data;
     // Read the symbols
     slurp_symtab(abfd, &data);
-    data.pc = addr[0];
-    data.found = false;
-    bfd_map_over_sections(abfd, find_address_in_section, &data);
-    if (!data.found) {
+    data.addr = addr[0];
+    data.line_found = false;
+    bfd_map_over_sections(abfd, process_section, &data);
+    if (!data.line_found) {
         s = format("[0x%llx] \?\?() \?\?:0", (long long unsigned int) addr[0]);
     } else {
         std::string name=demangle_function_name(data.functionname);
@@ -205,9 +209,9 @@ static std::string translate_addresses_buf(bfd *abfd, bfd_vma *addr)
         }
     }
     // cleanup
-    if (data.syms != NULL) {
-        free(data.syms);
-        data.syms = NULL;
+    if (data.symbol_table != NULL) {
+        free(data.symbol_table);
+        data.symbol_table = NULL;
     }
     s += "\n";
     return s;
