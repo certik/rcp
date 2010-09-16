@@ -263,15 +263,6 @@ static int find_matching_file(struct dl_phdr_info *info,
     return 0;
 }
 
-
-/* Process a file.  */
-
-static std::string process_file(const char *file_name, bfd_vma addr)
-{
-    std::string s = addr2str(file_name, addr);
-    return s;
-}
-
 /*
    Returns a std::string with the stacktrace corresponding to the
    list of addresses (of functions on the stack) in 'buffer'.
@@ -282,27 +273,25 @@ static std::string process_file(const char *file_name, bfd_vma addr)
 std::string backtrace2str(void *const *buffer, int size)
 {
     int stack_depth = size - 1;
-    int x;
 
     std::string final;
 
     bfd_init();
-    for(x=stack_depth; x>=0; x--) {
+    // Loop over the stack
+    for (int i=stack_depth; i >= 0; i--) {
         struct file_match match;
-        match.address = buffer[x];
-        bfd_vma addr;
+        match.address = buffer[i];
         dl_iterate_phdr(find_matching_file, &match);
-        addr = (bfd_vma)((long unsigned)(buffer[x])
-                - (long unsigned)(match.base));
+        bfd_vma addr = (bfd_vma)(buffer[i]) - (bfd_vma)(match.base);
         if (match.file && strlen(match.file))
             // This happens for shared libraries (like /lib/libc.so.6, or any
             // other shared library that the project uses). 'match.file' then
             // contains the full path to the .so library.
-            final += process_file(match.file, addr);
+            final += addr2str(match.file, addr);
         else
             // The 'addr' is from the current executable binary, which one can
             // find at '/proc/self/exe'. So we'll use that.
-            final += process_file("/proc/self/exe", addr);
+            final += addr2str("/proc/self/exe", addr);
     }
 
     return final;
