@@ -234,7 +234,7 @@ static std::string addr2str(const char *file_name, bfd_vma addr)
     return s;
 }
 
-struct file_match {
+struct match_data {
     const char *file;
     void *address;
     void *base;
@@ -244,7 +244,7 @@ struct file_match {
 static int find_matching_file(struct dl_phdr_info *info,
         size_t size, void *data)
 {
-    struct file_match *match = (struct file_match *)data;
+    struct match_data *match = (struct match_data *)data;
     /* This code is modeled from Gfind_proc_info-lsb.c:callback() from libunwind */
     long n;
     const ElfW(Phdr) *phdr;
@@ -279,7 +279,7 @@ std::string backtrace2str(void *const *buffer, int size)
     bfd_init();
     // Loop over the stack
     for (int i=stack_depth; i >= 0; i--) {
-        struct file_match match;
+        struct match_data match;
         match.address = buffer[i];
         dl_iterate_phdr(find_matching_file, &match);
         bfd_vma addr = (bfd_vma)(buffer[i]) - (bfd_vma)(match.base);
