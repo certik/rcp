@@ -75,15 +75,15 @@ std::string demangle_function_name(const char *name)
 {
     std::string s;
 
-    if (name == NULL || *name == '\0')
+    if (name == NULL || *name == '\0') {
         s = "??";
-    else {
+    } else {
         int status = 0;
         char *d = 0;
         d = abi::__cxa_demangle(name, 0, 0, &status);
-        if (d)
+        if (d) {
             s = d;
-        else {
+        } else {
             s = name;
             s += "()";
         }
