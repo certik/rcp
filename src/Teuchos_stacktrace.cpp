@@ -178,24 +178,42 @@ static void load_symbol_table(bfd *abfd, line_data *data)
 
 
 /*
-   Returns a string of 2 lines for the function with address 'addr'. Example:
+   Returns a string of 2 lines for the function with address 'addr' in the file
+   'file_name'. Example:
 
      File "/home/ondrej/repos/rcp/src/Teuchos_RCP.hpp", line 428, in Teuchos::RCP<A>::assert_not_null() const
          throw_null_ptr_error(typeName(*this));
 
    */
-static std::string translate_addresses_buf(bfd *abfd, bfd_vma *addr)
+static std::string addr2str(const char *file_name, bfd_vma addr)
 {
-    std::string s;
+    // Initialize 'abfd' and do some sanity checks
+    bfd *abfd;
+    abfd = bfd_openr(file_name, NULL);
+    if (abfd == NULL)
+        fatal("bfd_openr() failed");
+    if (bfd_check_format(abfd, bfd_archive))
+        fatal("Cannot get addresses from archive");
+    char **matching;
+    if (!bfd_check_format_matches(abfd, bfd_object, &matching))
+        fatal("bfd_check_format_matches() failed");
     line_data data;
-    // Read the symbols
-    load_symbol_table(abfd, &data);
-    data.addr = addr[0];
+    data.addr = addr;
+    data.symbol_table = NULL;
     data.line_found = false;
+    // This allocates symbol_table:
+    load_symbol_table(abfd, &data);
+    // Loops over all sections and try to find the line
     bfd_map_over_sections(abfd, process_section, &data);
+    // Deallocates the symbol table
+    if (data.symbol_table != NULL) free(data.symbol_table);
+
+    std::string s;
     if (!data.line_found) {
-        s = format("[0x%llx] \?\?() \?\?:0", (long long unsigned int) addr[0]);
+        // If we didn't find the line, at least print the address itself
+        s = format("[0x%llx] \?\?() \?\?:0", (long long unsigned int) addr);
     } else {
+        // Nicely format the filename + function name + line
         std::string name=demangle_function_name(data.functionname);
         s = format("  File \"%s\", line %u, in %s",
                 data.filename ? data.filename : "??", data.line,
@@ -209,12 +227,10 @@ static std::string translate_addresses_buf(bfd *abfd, bfd_vma *addr)
             }
         }
     }
-    // cleanup
-    if (data.symbol_table != NULL) {
-        free(data.symbol_table);
-        data.symbol_table = NULL;
-    }
     s += "\n";
+    // This function deallocates the strings in the 'data' structure
+    // (functioname, ...)
+    bfd_close(abfd);
     return s;
 }
 
@@ -250,24 +266,9 @@ static int find_matching_file(struct dl_phdr_info *info,
 
 /* Process a file.  */
 
-static std::string process_file(const char *file_name, bfd_vma *addr)
+static std::string process_file(const char *file_name, bfd_vma addr)
 {
-    // Initialize 'abfd' and do some sanity checks
-    bfd *abfd;
-    abfd = bfd_openr(file_name, NULL);
-    if (abfd == NULL)
-        fatal("bfd_openr() failed");
-    if (bfd_check_format(abfd, bfd_archive))
-        fatal("Cannot get addresses from archive");
-    char **matching;
-    if (!bfd_check_format_matches(abfd, bfd_object, &matching))
-        fatal("bfd_check_format_matches() failed");
-
-
-    // Get nice representation of each address
-    std::string s = translate_addresses_buf(abfd, addr);
-
-    bfd_close(abfd);
+    std::string s = addr2str(file_name, addr);
     return s;
 }
 
@@ -297,11 +298,11 @@ std::string backtrace2str(void *const *buffer, int size)
             // This happens for shared libraries (like /lib/libc.so.6, or any
             // other shared library that the project uses). 'match.file' then
             // contains the full path to the .so library.
-            final += process_file(match.file, &addr);
+            final += process_file(match.file, addr);
         else
             // The 'addr' is from the current executable binary, which one can
             // find at '/proc/self/exe'. So we'll use that.
-            final += process_file("/proc/self/exe", &addr);
+            final += process_file("/proc/self/exe", addr);
     }
 
     return final;
