@@ -49,14 +49,16 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // backtrace() function for retrieving the backtrace
 #include <execinfo.h>
 
-// For bfd_* family of functions for loading debugging symbols from the binary
-#include <bfd.h>
-
 // For dl_iterate_phdr() functionality
 #include <link.h>
 
 // For demangling function names
 #include <cxxabi.h>
+
+// For bfd_* family of functions for loading debugging symbols from the binary
+// This is the only nonstandard header file and the binary needs to be linked
+// with "-lbfd".
+#include <bfd.h>
 
 namespace {
 
