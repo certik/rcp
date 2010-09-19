@@ -45,20 +45,21 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
    translate_addresses_buf and find_address_in_section.  */
 
 struct line_data {
+    asymbol **symbol_table;     /* Symbol table.  */
+
     bfd_vma addr;
-    const char *filename;
-    const char *functionname;
+    std::string filename;
+    std::string function_name;
     unsigned int line;
     int line_found;
-    asymbol **symbol_table;     /* Symbol table.  */
 };
 
 /*
    Reads the 'line_number'th line from the file filename.
 */
-std::string read_line_from_file(const char *filename, unsigned int line_number)
+std::string read_line_from_file(std::string filename, unsigned int line_number)
 {
-    std::ifstream in(filename);
+    std::ifstream in(filename.c_str());
     if (!in.is_open())
         return "";
     if (line_number == 0)
@@ -98,21 +99,21 @@ std::string format(const char *fmt, ...)
    Makes sure that it ends with (), which is automatic in C++, but it has to be
    added by hand in C.
    */
-std::string demangle_function_name(const char *name)
+std::string demangle_function_name(std::string name)
 {
     std::string s;
 
-    if (name == NULL || *name == '\0') {
+    if (name.length() == 0) {
         s = "??";
     } else {
         int status = 0;
         char *d = 0;
-        d = abi::__cxa_demangle(name, 0, 0, &status);
+        d = abi::__cxa_demangle(name.c_str(), 0, 0, &status);
         if (d) {
             s = d;
+            //TODO: are we responsible for freeing "d"?
         } else {
-            s = name;
-            s += "()";
+            s = name + "()";
         }
     }
 
@@ -150,8 +151,14 @@ static void process_section(bfd *abfd, asection *section, void *_data)
     bfd_vma offset = data->addr - vma - 1;
 
     // Finds the line corresponding to the offset
+    const char *filename, *function_name;
     data->line_found = bfd_find_nearest_line(abfd, section, data->symbol_table,
-            offset, &data->filename, &data->functionname, &data->line);
+            offset, &filename, &function_name, &data->line);
+    if (filename == NULL)
+        data->filename = "";
+    else
+        data->filename = filename;
+    data->function_name = function_name;
 }
 
 /* Loads the symbol table into 'data->symbol_table'.  */
@@ -218,10 +225,10 @@ static std::string addr2str(std::string file_name, bfd_vma addr)
         s = format("  File unknown, address: 0x%llx",
                 (long long unsigned int) addr);
     } else {
-        std::string name=demangle_function_name(data.functionname);
-        if (data.filename) {
+        std::string name=demangle_function_name(data.function_name);
+        if (data.filename.length() > 0) {
             // Nicely format the filename + function name + line
-            s = format("  File \"%s\", line %u, in %s", data.filename,
+            s = format("  File \"%s\", line %u, in %s", data.filename.c_str(),
                     data.line, name.c_str());
             std::string line_text=read_line_from_file(data.filename,
                     data.line);
@@ -237,7 +244,7 @@ static std::string addr2str(std::string file_name, bfd_vma addr)
     }
     s += "\n";
     // This function deallocates the strings in the 'data' structure
-    // (functionname, ...), so it needs to be called here, after copying all
+    // (function_name, ...), so it needs to be called here, after copying all
     // the relevant strings into "s".
     bfd_close(abfd);
     return s;
