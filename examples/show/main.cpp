@@ -2,7 +2,7 @@
 
 void g()
 {
-    show_backtrace();
+    Teuchos::show_backtrace();
 }
 
 void f()
@@ -12,7 +12,7 @@ void f()
 
 int main()
 {
-    print_stack_on_segfault();
+    Teuchos::print_stack_on_segfault();
     f();
 
     // This will segfault:

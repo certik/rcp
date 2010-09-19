@@ -40,6 +40,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <fstream>
 #include <signal.h>
 
+#include "Teuchos_stacktrace.hpp"
+
 #define fatal(a) exit(1)
 
 /* These class is used to pass information between
@@ -299,7 +301,7 @@ std::string backtrace2str(void *const *buffer, int size)
 
 
 /* Returns the backtrace as a std::string. */
-std::string get_backtrace()
+std::string Teuchos::get_backtrace()
 {
     void *array[100];
     size_t size;
@@ -316,15 +318,15 @@ std::string get_backtrace()
 }
 
 /* Obtain a backtrace and print it to stdout. */
-void show_backtrace()
+void Teuchos::show_backtrace()
 {
-    std::cout << get_backtrace();
+    std::cout << Teuchos::get_backtrace();
 }
 
 void _segfault_callback_print_stack(int sig_num)
 {
     std::cout << "\nSegfault caught. Printing stacktrace:\n\n";
-    show_backtrace();
+    Teuchos::show_backtrace();
     std::cout << "\nDone. Exiting the program.\n";
     // Deregister our abort callback:
     signal(SIGABRT, SIG_DFL);
@@ -334,11 +336,11 @@ void _segfault_callback_print_stack(int sig_num)
 void _abort_callback_print_stack(int sig_num)
 {
     std::cout << "\nAbort caught. Printing stacktrace:\n\n";
-    show_backtrace();
+    Teuchos::show_backtrace();
     std::cout << "\nDone.\n";
 }
 
-void print_stack_on_segfault()
+void Teuchos::print_stack_on_segfault()
 {
     signal(SIGSEGV, _segfault_callback_print_stack);
     signal(SIGABRT, _abort_callback_print_stack);

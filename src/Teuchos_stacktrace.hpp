@@ -31,8 +31,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <string>
 
+namespace Teuchos {
+
 void show_backtrace();
 void print_stack_on_segfault();
 std::string get_backtrace();
+
+} // end namespace Teuchos
 
 #endif
