@@ -199,19 +199,19 @@ static std::string addr2str(std::string file_name, bfd_vma addr)
     bfd *abfd;
     abfd = bfd_openr(file_name.c_str(), NULL);
     if (abfd == NULL)
-        return "bfd_openr() failed\n";
+        return "Cannot open the binary file '" + file_name + "'\n";
     if (bfd_check_format(abfd, bfd_archive))
-        return "Cannot get addresses from archive\n";
+        return "Cannot get addresses from the archive '" + file_name + "'\n";
     char **matching;
     if (!bfd_check_format_matches(abfd, bfd_object, &matching))
-        return "bfd_check_format_matches() failed\n";
+        return "Unknown format of the binary file '" + file_name + "'\n";
     line_data data;
     data.addr = addr;
     data.symbol_table = NULL;
     data.line_found = false;
     // This allocates the symbol_table:
     if (load_symbol_table(abfd, &data) == 1)
-        return "Failed to load the symbol table\n";
+        return "Failed to load the symbol table from '" + file_name + "'\n";
     // Loops over all sections and try to find the line
     bfd_map_over_sections(abfd, process_section, &data);
     // Deallocates the symbol table
@@ -300,7 +300,7 @@ std::string backtrace2str(void *const *buffer, int size)
         struct match_data match;
         match.addr = (bfd_vma) buffer[i];
         if (dl_iterate_phdr(shared_lib_callback, &match) == 0)
-            return "dl_iterate_phdr didn't find a match\n";
+            return "dl_iterate_phdr() didn't find a match\n";
 
         if (match.filename.length() > 0)
             // This happens for shared libraries (like /lib/libc.so.6, or any
