@@ -111,7 +111,7 @@ std::string demangle_function_name(std::string name)
         d = abi::__cxa_demangle(name.c_str(), 0, 0, &status);
         if (d) {
             s = d;
-            //TODO: are we responsible for freeing "d"?
+            free(d);
         } else {
             s = name + "()";
         }
