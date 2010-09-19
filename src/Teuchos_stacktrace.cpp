@@ -176,7 +176,10 @@ static void process_section(bfd *abfd, asection *section, void *_data)
         data->filename = "";
     else
         data->filename = filename;
-    data->function_name = function_name;
+    if (function_name == NULL)
+        data->function_name = "";
+    else
+        data->function_name = function_name;
 }
 
 /* Loads the symbol table into 'data->symbol_table'.  */
