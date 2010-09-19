@@ -218,16 +218,19 @@ static std::string addr2str(const char *file_name, bfd_vma addr)
     } else {
         // Nicely format the filename + function name + line
         std::string name=demangle_function_name(data.functionname);
-        s = format("  File \"%s\", line %u, in %s",
-                data.filename ? data.filename : "??", data.line,
-                name.c_str());
         if (data.filename) {
+            s = format("  File \"%s\", line %u, in %s", data.filename,
+                    data.line, name.c_str());
             std::string line_text=read_line_from_file(data.filename,
                     data.line);
             if (line_text != "") {
                 s += "\n    ";
                 s += line_text;
             }
+        } else {
+            // The file is unknown (and data.line == 0 in this case), so the
+            // only meaningful thing to print is the function name:
+            s = format("  File unknown, in %s", name.c_str());
         }
     }
     s += "\n";
