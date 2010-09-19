@@ -26,23 +26,41 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#include <string.h>
-#include <stdlib.h>
-#include <execinfo.h>
-#include <bfd.h>
-#include <link.h>
-#include <stdarg.h>
 
-#include <cxxabi.h>
 #include <string>
 #include <iostream>
 #include <fstream>
-#include <signal.h>
+
+// free() and abort() functions
+#include <cstdlib>
+
+// For handling variable number of arguments using va_start/va_end functions
+#include <cstdarg>
+
+// For registering SIGSEGV callbacks
+#include <csignal>
 
 #include "Teuchos_stacktrace.hpp"
 
-/* These class is used to pass information between
-   translate_addresses_buf and find_address_in_section.  */
+
+// The following C headers are needed for some specific C functionality (see
+// the comments), which is not available in C++:
+
+// backtrace() function for retrieving the backtrace
+#include <execinfo.h>
+
+// For bfd_* family of functions for loading debugging symbols from the binary
+#include <bfd.h>
+
+// For dl_iterate_phdr() functionality
+#include <link.h>
+
+// For demangling function names
+#include <cxxabi.h>
+
+
+/* This struct is used to pass information between
+   addr2str() and process_section().  */
 
 struct line_data {
     asymbol **symbol_table;     /* Symbol table.  */
