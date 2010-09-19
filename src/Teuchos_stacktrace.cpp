@@ -42,8 +42,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "Teuchos_stacktrace.hpp"
 
-#define fatal(a) exit(1)
-
 /* These class is used to pass information between
    translate_addresses_buf and find_address_in_section.  */
 
@@ -195,19 +193,19 @@ static std::string addr2str(const char *file_name, bfd_vma addr)
     bfd *abfd;
     abfd = bfd_openr(file_name, NULL);
     if (abfd == NULL)
-        fatal("bfd_openr() failed");
+        return "bfd_openr() failed\n";
     if (bfd_check_format(abfd, bfd_archive))
-        fatal("Cannot get addresses from archive");
+        return "Cannot get addresses from archive\n";
     char **matching;
     if (!bfd_check_format_matches(abfd, bfd_object, &matching))
-        fatal("bfd_check_format_matches() failed");
+        return "bfd_check_format_matches() failed\n";
     line_data data;
     data.addr = addr;
     data.symbol_table = NULL;
     data.line_found = false;
     // This allocates the symbol_table:
     if (load_symbol_table(abfd, &data) == 1)
-        fatal("Failed to load the symbol table");
+        return "Failed to load the symbol table\n";
     // Loops over all sections and try to find the line
     bfd_map_over_sections(abfd, process_section, &data);
     // Deallocates the symbol table
@@ -299,7 +297,7 @@ std::string backtrace2str(void *const *buffer, int size)
         struct match_data match;
         match.addr = (bfd_vma) buffer[i];
         if (dl_iterate_phdr(shared_lib_callback, &match) == 0)
-            fatal("dl_iterate_phdr didn't find a match");
+            return "dl_iterate_phdr didn't find a match\n";
 
         if (match.filename && strlen(match.filename))
             // This happens for shared libraries (like /lib/libc.so.6, or any
