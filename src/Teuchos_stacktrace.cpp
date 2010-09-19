@@ -211,14 +211,16 @@ static std::string addr2str(const char *file_name, bfd_vma addr)
     if (data.symbol_table != NULL) free(data.symbol_table);
 
     std::string s;
+    // Do the printing --- print as much information as we were able to
+    // find out
     if (!data.line_found) {
         // If we didn't find the line, at least print the address itself
         s = format("  File unknown, address: 0x%llx",
                 (long long unsigned int) addr);
     } else {
-        // Nicely format the filename + function name + line
         std::string name=demangle_function_name(data.functionname);
         if (data.filename) {
+            // Nicely format the filename + function name + line
             s = format("  File \"%s\", line %u, in %s", data.filename,
                     data.line, name.c_str());
             std::string line_text=read_line_from_file(data.filename,
@@ -235,7 +237,8 @@ static std::string addr2str(const char *file_name, bfd_vma addr)
     }
     s += "\n";
     // This function deallocates the strings in the 'data' structure
-    // (functioname, ...)
+    // (functionname, ...), so it needs to be called here, after copying all
+    // the relevant strings into "s".
     bfd_close(abfd);
     return s;
 }
