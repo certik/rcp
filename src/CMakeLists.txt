@@ -1,3 +1,12 @@
+include(CheckIncludeFile)
+CHECK_INCLUDE_FILE("link.h" HAVE_LINK)
+CHECK_INCLUDE_FILE("bfd.h" HAVE_BFD)
+
+if(NOT (HAVE_LINK AND HAVE_BFD))
+    message(FATAL_ERROR "link.h and bfd.h are required. Install the binutils-dev package.")
+endif(NOT (HAVE_LINK AND HAVE_BFD))
+
+
 # These are all Teuchos files, we only uncommented the ones implementing RCP:
 SET(SOURCES
   #Teuchos_BLAS.cpp
