@@ -216,6 +216,7 @@ static std::string addr2str(std::string file_name, bfd_vma addr)
     bfd_map_over_sections(abfd, process_section, &data);
     // Deallocates the symbol table
     if (data.symbol_table != NULL) free(data.symbol_table);
+    bfd_close(abfd);
 
     std::string s;
     // Do the printing --- print as much information as we were able to
@@ -243,10 +244,6 @@ static std::string addr2str(std::string file_name, bfd_vma addr)
         }
     }
     s += "\n";
-    // This function deallocates the strings in the 'data' structure
-    // (function_name, ...), so it needs to be called here, after copying all
-    // the relevant strings into "s".
-    bfd_close(abfd);
     return s;
 }
 
