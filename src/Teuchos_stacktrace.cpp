@@ -159,11 +159,11 @@ static void process_section(bfd *abfd, asection *section, void *_data)
 
 /* Loads the symbol table into 'data->symbol_table'.  */
 
-static void load_symbol_table(bfd *abfd, line_data *data)
+static int load_symbol_table(bfd *abfd, line_data *data)
 {
     if ((bfd_get_file_flags(abfd) & HAS_SYMS) == 0)
         // If we don't have any symbols, return
-        return;
+        return 0;
 
     void **tmp = (void **) &(data->symbol_table);
     long n_symbols;
@@ -174,7 +174,9 @@ static void load_symbol_table(bfd *abfd, line_data *data)
         n_symbols = bfd_read_minisymbols(abfd, true, tmp, &symbol_size);
 
     if (n_symbols < 0)
-        fatal("bfd_read_minisymbols() failed");
+        // bfd_read_minisymbols() failed
+        return 1;
+    return 0;
 }
 
 
@@ -203,8 +205,9 @@ static std::string addr2str(const char *file_name, bfd_vma addr)
     data.addr = addr;
     data.symbol_table = NULL;
     data.line_found = false;
-    // This allocates symbol_table:
-    load_symbol_table(abfd, &data);
+    // This allocates the symbol_table:
+    if (load_symbol_table(abfd, &data) == 1)
+        fatal("Failed to load the symbol table");
     // Loops over all sections and try to find the line
     bfd_map_over_sections(abfd, process_section, &data);
     // Deallocates the symbol table
