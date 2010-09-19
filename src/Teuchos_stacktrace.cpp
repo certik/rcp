@@ -156,18 +156,18 @@ void process_section(bfd *abfd, asection *section, void *_data)
     if ((bfd_get_section_flags(abfd, section) & SEC_ALLOC) == 0)
         return;
 
-    bfd_vma vma = bfd_get_section_vma(abfd, section);
-    if (data->addr < vma)
+    bfd_vma section_vma = bfd_get_section_vma(abfd, section);
+    if (data->addr < section_vma)
         // If the addr lies above the section, exit
         return;
 
-    bfd_size_type size = bfd_section_size(abfd, section);
-    if (data->addr >= vma + size)
+    bfd_size_type section_size = bfd_section_size(abfd, section);
+    if (data->addr >= section_vma + section_size)
         // If the addr lies below the section, exit
         return;
 
     // Calculate the correct offset of our line in the section
-    bfd_vma offset = data->addr - vma - 1;
+    bfd_vma offset = data->addr - section_vma - 1;
 
     // Finds the line corresponding to the offset
     const char *filename, *function_name;
