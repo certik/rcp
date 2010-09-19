@@ -213,7 +213,8 @@ static std::string addr2str(const char *file_name, bfd_vma addr)
     std::string s;
     if (!data.line_found) {
         // If we didn't find the line, at least print the address itself
-        s = format("[0x%llx] \?\?() \?\?:0", (long long unsigned int) addr);
+        s = format("  File unknown, address: 0x%llx",
+                (long long unsigned int) addr);
     } else {
         // Nicely format the filename + function name + line
         std::string name=demangle_function_name(data.functionname);
@@ -237,31 +238,28 @@ static std::string addr2str(const char *file_name, bfd_vma addr)
 }
 
 struct match_data {
-    const char *file;
-    void *address;
-    void *base;
-    void *hdr;
+    const char *filename;
+    bfd_vma addr;
+    bfd_vma addr_in_file;
 };
 
-static int find_matching_file(struct dl_phdr_info *info,
+static int shared_lib_callback(struct dl_phdr_info *info,
         size_t size, void *data)
 {
     struct match_data *match = (struct match_data *)data;
-    /* This code is modeled from Gfind_proc_info-lsb.c:callback() from libunwind */
-    long n;
-    const ElfW(Phdr) *phdr;
-    ElfW(Addr) load_base = info->dlpi_addr;
-    phdr = info->dlpi_phdr;
-    for (n = info->dlpi_phnum; --n >= 0; phdr++) {
-        if (phdr->p_type == PT_LOAD) {
-            ElfW(Addr) vaddr = phdr->p_vaddr + load_base;
-            if ((long unsigned)(match->address) >= vaddr && (long unsigned)(match->address) < vaddr + phdr->p_memsz) {
-                /* we found a match */
-                match->file = info->dlpi_name;
-                match->base = (void*)(info->dlpi_addr);
+    for (int i=0; i < info->dlpi_phnum; i++) {
+        if (info->dlpi_phdr[i].p_type == PT_LOAD) {
+            ElfW(Addr) vaddr = info->dlpi_addr + info->dlpi_phdr[i].p_vaddr;
+            if ((match->addr >= vaddr) &&
+                        (match->addr < vaddr + info->dlpi_phdr[i].p_memsz)) {
+                match->filename = info->dlpi_name;
+                match->addr_in_file = match->addr - info->dlpi_addr;
+                // We found a match, return a non-zero value
+                return 1;
             }
         }
     }
+    // We didn't find a match, return a zero value
     return 0;
 }
 
@@ -281,19 +279,22 @@ std::string backtrace2str(void *const *buffer, int size)
     bfd_init();
     // Loop over the stack
     for (int i=stack_depth; i >= 0; i--) {
+        // Iterate over all loaded shared libraries (see dl_iterate_phdr(3) -
+        // Linux man page for more documentation)
         struct match_data match;
-        match.address = buffer[i];
-        dl_iterate_phdr(find_matching_file, &match);
-        bfd_vma addr = (bfd_vma)(buffer[i]) - (bfd_vma)(match.base);
-        if (match.file && strlen(match.file))
+        match.addr = (bfd_vma) buffer[i];
+        if (dl_iterate_phdr(shared_lib_callback, &match) == 0)
+            fatal("dl_iterate_phdr didn't find a match");
+
+        if (match.filename && strlen(match.filename))
             // This happens for shared libraries (like /lib/libc.so.6, or any
-            // other shared library that the project uses). 'match.file' then
-            // contains the full path to the .so library.
-            final += addr2str(match.file, addr);
+            // other shared library that the project uses). 'match.filename'
+            // then contains the full path to the .so library.
+            final += addr2str(match.filename, match.addr_in_file);
         else
-            // The 'addr' is from the current executable binary, which one can
-            // find at '/proc/self/exe'. So we'll use that.
-            final += addr2str("/proc/self/exe", addr);
+            // The 'addr_in_file' is from the current executable binary, that
+            // one can find at '/proc/self/exe'. So we'll use that.
+            final += addr2str("/proc/self/exe", match.addr_in_file);
     }
 
     return final;
