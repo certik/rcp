@@ -31,8 +31,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <execinfo.h>
 #include <bfd.h>
 #define HAVE_DECL_BASENAME 1
-#include <libiberty.h>
 #include <link.h>
+#include <stdarg.h>
 
 #include <cxxabi.h>
 #include <string>
