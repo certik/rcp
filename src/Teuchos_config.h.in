@@ -115,3 +115,6 @@
 #  endif
 #endif
 
+
+#cmakedefine HAVE_LINK
+#cmakedefine HAVE_BFD
