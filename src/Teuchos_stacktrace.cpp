@@ -277,21 +277,21 @@ struct match_data {
 };
 
 /*
-   Tries to find the 'match.addr' in the current shared lib (as passed in
+   Tries to find the 'data.addr' in the current shared lib (as passed in
    'info'). If it succeeds, returns (in the 'data') the full path to the shared
    lib and the local address in the file.
 */
 int shared_lib_callback(struct dl_phdr_info *info,
-        size_t size, void *data)
+        size_t size, void *_data)
 {
-    struct match_data *match = (struct match_data *)data;
+    struct match_data *data = (struct match_data *)_data;
     for (int i=0; i < info->dlpi_phnum; i++) {
         if (info->dlpi_phdr[i].p_type == PT_LOAD) {
-            ElfW(Addr) vaddr = info->dlpi_addr + info->dlpi_phdr[i].p_vaddr;
-            if ((match->addr >= vaddr) &&
-                        (match->addr < vaddr + info->dlpi_phdr[i].p_memsz)) {
-                match->filename = info->dlpi_name;
-                match->addr_in_file = match->addr - info->dlpi_addr;
+            ElfW(Addr) min_addr = info->dlpi_addr + info->dlpi_phdr[i].p_vaddr;
+            ElfW(Addr) max_addr = min_addr + info->dlpi_phdr[i].p_memsz;
+            if ((data->addr >= min_addr) && (data->addr < max_addr)) {
+                data->filename = info->dlpi_name;
+                data->addr_in_file = data->addr - info->dlpi_addr;
                 // We found a match, return a non-zero value
                 return 1;
             }
