@@ -58,6 +58,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // For demangling function names
 #include <cxxabi.h>
 
+namespace {
 
 /* This struct is used to pass information between
    addr2str() and process_section().  */
@@ -146,7 +147,7 @@ std::string demangle_function_name(std::string name)
    immediately.
  */
 
-static void process_section(bfd *abfd, asection *section, void *_data)
+void process_section(bfd *abfd, asection *section, void *_data)
 {
     line_data *data = (line_data*)_data;
     if (data->line_found)
@@ -184,7 +185,7 @@ static void process_section(bfd *abfd, asection *section, void *_data)
 
 /* Loads the symbol table into 'data->symbol_table'.  */
 
-static int load_symbol_table(bfd *abfd, line_data *data)
+int load_symbol_table(bfd *abfd, line_data *data)
 {
     if ((bfd_get_file_flags(abfd) & HAS_SYMS) == 0)
         // If we don't have any symbols, return
@@ -214,7 +215,7 @@ static int load_symbol_table(bfd *abfd, line_data *data)
          throw_null_ptr_error(typeName(*this));
 
    */
-static std::string addr2str(std::string file_name, bfd_vma addr)
+std::string addr2str(std::string file_name, bfd_vma addr)
 {
     // Initialize 'abfd' and do some sanity checks
     bfd *abfd;
@@ -280,7 +281,7 @@ struct match_data {
    'info'). If it succeeds, returns (in the 'data') the full path to the shared
    lib and the local address in the file.
 */
-static int shared_lib_callback(struct dl_phdr_info *info,
+int shared_lib_callback(struct dl_phdr_info *info,
         size_t size, void *data)
 {
     struct match_data *match = (struct match_data *)data;
@@ -337,6 +338,25 @@ std::string backtrace2str(void *const *buffer, int size)
     return final;
 }
 
+void _segfault_callback_print_stack(int sig_num)
+{
+    std::cout << "\nSegfault caught. Printing stacktrace:\n\n";
+    Teuchos::show_backtrace();
+    std::cout << "\nDone. Exiting the program.\n";
+    // Deregister our abort callback:
+    signal(SIGABRT, SIG_DFL);
+    abort();
+}
+
+void _abort_callback_print_stack(int sig_num)
+{
+    std::cout << "\nAbort caught. Printing stacktrace:\n\n";
+    Teuchos::show_backtrace();
+    std::cout << "\nDone.\n";
+}
+
+} // Unnamed namespace
+
 
 /* Returns the backtrace as a std::string. */
 std::string Teuchos::get_backtrace()
@@ -359,23 +379,6 @@ std::string Teuchos::get_backtrace()
 void Teuchos::show_backtrace()
 {
     std::cout << Teuchos::get_backtrace();
-}
-
-void _segfault_callback_print_stack(int sig_num)
-{
-    std::cout << "\nSegfault caught. Printing stacktrace:\n\n";
-    Teuchos::show_backtrace();
-    std::cout << "\nDone. Exiting the program.\n";
-    // Deregister our abort callback:
-    signal(SIGABRT, SIG_DFL);
-    abort();
-}
-
-void _abort_callback_print_stack(int sig_num)
-{
-    std::cout << "\nAbort caught. Printing stacktrace:\n\n";
-    Teuchos::show_backtrace();
-    std::cout << "\nDone.\n";
 }
 
 void Teuchos::print_stack_on_segfault()
