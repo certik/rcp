@@ -30,7 +30,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <stdlib.h>
 #include <execinfo.h>
 #include <bfd.h>
-#define HAVE_DECL_BASENAME 1
 #include <link.h>
 #include <stdarg.h>
 
