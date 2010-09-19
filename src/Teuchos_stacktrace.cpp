@@ -186,11 +186,11 @@ static int load_symbol_table(bfd *abfd, line_data *data)
          throw_null_ptr_error(typeName(*this));
 
    */
-static std::string addr2str(const char *file_name, bfd_vma addr)
+static std::string addr2str(std::string file_name, bfd_vma addr)
 {
     // Initialize 'abfd' and do some sanity checks
     bfd *abfd;
-    abfd = bfd_openr(file_name, NULL);
+    abfd = bfd_openr(file_name.c_str(), NULL);
     if (abfd == NULL)
         return "bfd_openr() failed\n";
     if (bfd_check_format(abfd, bfd_archive))
@@ -246,7 +246,7 @@ static std::string addr2str(const char *file_name, bfd_vma addr)
 struct match_data {
     bfd_vma addr;
 
-    const char *filename;
+    std::string filename;
     bfd_vma addr_in_file;
 };
 
@@ -298,7 +298,7 @@ std::string backtrace2str(void *const *buffer, int size)
         if (dl_iterate_phdr(shared_lib_callback, &match) == 0)
             return "dl_iterate_phdr didn't find a match\n";
 
-        if (match.filename && strlen(match.filename))
+        if (match.filename.length() > 0)
             // This happens for shared libraries (like /lib/libc.so.6, or any
             // other shared library that the project uses). 'match.filename'
             // then contains the full path to the .so library.
