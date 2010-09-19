@@ -244,11 +244,17 @@ static std::string addr2str(const char *file_name, bfd_vma addr)
 }
 
 struct match_data {
-    const char *filename;
     bfd_vma addr;
+
+    const char *filename;
     bfd_vma addr_in_file;
 };
 
+/*
+   Tries to find the 'match.addr' in the current shared lib (as passed in
+   'info'). If it succeeds, returns (in the 'data') the full path to the shared
+   lib and the local address in the file.
+*/
 static int shared_lib_callback(struct dl_phdr_info *info,
         size_t size, void *data)
 {
