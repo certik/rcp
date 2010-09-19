@@ -40,6 +40,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // For registering SIGSEGV callbacks
 #include <csignal>
 
+#include "Teuchos_ConfigDefs.hpp"
 #include "Teuchos_stacktrace.hpp"
 
 
@@ -49,16 +50,23 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // backtrace() function for retrieving the backtrace
 #include <execinfo.h>
 
+#ifdef HAVE_LINK
 // For dl_iterate_phdr() functionality
 #include <link.h>
+#endif
 
 // For demangling function names
 #include <cxxabi.h>
 
+#ifdef HAVE_BFD
 // For bfd_* family of functions for loading debugging symbols from the binary
 // This is the only nonstandard header file and the binary needs to be linked
 // with "-lbfd".
 #include <bfd.h>
+#else
+typedef long long unsigned bfd_vma;
+#endif
+
 
 namespace {
 
@@ -66,7 +74,9 @@ namespace {
    addr2str() and process_section().  */
 
 struct line_data {
+#ifdef HAVE_BFD
     asymbol **symbol_table;     /* Symbol table.  */
+#endif
 
     bfd_vma addr;
     std::string filename;
@@ -149,6 +159,7 @@ std::string demangle_function_name(std::string name)
    immediately.
  */
 
+#ifdef HAVE_BFD
 void process_section(bfd *abfd, asection *section, void *_data)
 {
     line_data *data = (line_data*)_data;
@@ -206,6 +217,7 @@ int load_symbol_table(bfd *abfd, line_data *data)
         return 1;
     return 0;
 }
+#endif
 
 
 
@@ -219,6 +231,7 @@ int load_symbol_table(bfd *abfd, line_data *data)
    */
 std::string addr2str(std::string file_name, bfd_vma addr)
 {
+#ifdef HAVE_BFD
     // Initialize 'abfd' and do some sanity checks
     bfd *abfd;
     abfd = bfd_openr(file_name.c_str(), NULL);
@@ -241,6 +254,10 @@ std::string addr2str(std::string file_name, bfd_vma addr)
     // Deallocates the symbol table
     if (data.symbol_table != NULL) free(data.symbol_table);
     bfd_close(abfd);
+#else
+    line_data data;
+    data.line_found = 0;
+#endif
 
     std::string s;
     // Do the printing --- print as much information as we were able to
@@ -283,6 +300,7 @@ struct match_data {
    'info'). If it succeeds, returns (in the 'data') the full path to the shared
    lib and the local address in the file.
 */
+#ifdef HAVE_LINK
 int shared_lib_callback(struct dl_phdr_info *info,
         size_t size, void *_data)
 {
@@ -302,6 +320,7 @@ int shared_lib_callback(struct dl_phdr_info *info,
     // We didn't find a match, return a zero value
     return 0;
 }
+#endif
 
 /*
    Returns a std::string with the stacktrace corresponding to the
@@ -316,15 +335,22 @@ std::string backtrace2str(void *const *buffer, int size)
 
     std::string final;
 
+#ifdef HAVE_BFD
     bfd_init();
+#endif
     // Loop over the stack
     for (int i=stack_depth; i >= 0; i--) {
         // Iterate over all loaded shared libraries (see dl_iterate_phdr(3) -
         // Linux man page for more documentation)
         struct match_data match;
         match.addr = (bfd_vma) buffer[i];
+#ifdef HAVE_BFD
         if (dl_iterate_phdr(shared_lib_callback, &match) == 0)
             return "dl_iterate_phdr() didn't find a match\n";
+#else
+        match.filename = "";
+        match.addr_in_file = match.addr;
+#endif
 
         if (match.filename.length() > 0)
             // This happens for shared libraries (like /lib/libc.so.6, or any
