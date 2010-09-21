@@ -1,4 +1,5 @@
 include(CheckIncludeFile)
+
 CHECK_INCLUDE_FILE("link.h" HAVE_LINK)
 CHECK_INCLUDE_FILE("bfd.h" HAVE_BFD)
 
@@ -10,7 +11,6 @@ configure_file(
     "Teuchos_config.h.in"
     "Teuchos_config.h"
     )
-
 
 # These are all Teuchos files, we only uncommented the ones implementing RCP:
 SET(SOURCES
