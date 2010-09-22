@@ -7,6 +7,14 @@ if(NOT (HAVE_LINK AND HAVE_BFD))
     message(WARNING "link.h and bfd.h not found, the stacktrace functionality will not be available. Install the binutils-dev package to fix this.")
 endif(NOT (HAVE_LINK AND HAVE_BFD))
 
+if (HAVE_LINK)
+  SET(HAVE_TEUCHOS_LINK TRUE)
+endif()
+
+if (HAVE_BFD)
+  SET(HAVE_TEUCHOS_BFD TRUE)
+endif()
+
 configure_file(
     "Teuchos_config.h.in"
     "Teuchos_config.h"

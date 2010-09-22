@@ -115,6 +115,6 @@
 #  endif
 #endif
 
+#cmakedefine HAVE_TEUCHOS_LINK
 
-#cmakedefine HAVE_LINK
-#cmakedefine HAVE_BFD
+#cmakedefine HAVE_TEUCHOS_BFD

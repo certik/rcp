@@ -29,12 +29,22 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef _STACKTRACE_H_
 #define _STACKTRACE_H_
 
-#include <string>
+/*! \file Teuchos_stacktrace.hpp
+
+\brief Functions for returning stacktrace info (GCC only initially).
+*/
+
+#include "Teuchos_ConfigDefs.hpp"
 
 namespace Teuchos {
 
+/** \brief . */
 void show_backtrace();
+
+/** \brief . */
 void print_stack_on_segfault();
+
+/** \brief . */
 std::string get_backtrace();
 
 } // end namespace Teuchos

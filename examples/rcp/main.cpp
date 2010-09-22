@@ -5,6 +5,7 @@ using Teuchos::RCP;
 using Teuchos::rcp;
 using Teuchos::null;
 
+
 class A {
     int a;
 public:
@@ -19,23 +20,35 @@ public:
     }
 };
 
+
 RCP<A> create_A() {
     RCP<A> a;
     a = rcp(new A());
     return a;
 }
 
+
 RCP<A> create_null() {
     return null;
 }
 
+
 int main()
 {
-    RCP<A> a = create_A();
-    // works:
-    a->test();
-    RCP<A> b = create_null();
-    // will raise an exception:
-    b->test();
-    return 0;
+    try {
+        RCP<A> a = create_A();
+        // works:
+        a->test();
+        RCP<A> b = create_null();
+        // will raise an exception:
+        b->test();
+        return 0;
+    }
+    catch(const std::exception &except) {
+        std::cout
+            << "Caught exception of type '"<<typeid(except).name()<<"':\n"
+            << except.what()
+            << "\n";
+    }
+    return 1;
 }
