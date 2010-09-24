@@ -1,0 +1,3 @@
+cd binutils-2.20.1/bfd/
+CFLAGS="-g -fPIC" ./configure
+make -j3
