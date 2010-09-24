@@ -221,7 +221,7 @@ void process_section(bfd *abfd, asection *section, void *_data)
 
     // Finds the line corresponding to the offset
 
-    const char *filename, *function_name;
+    const char *filename=NULL, *function_name=NULL;
     data->line_found = bfd_find_nearest_line(abfd, section, data->symbol_table,
         offset, &filename, &function_name, &data->line);
 
