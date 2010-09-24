@@ -249,6 +249,10 @@ int load_symbol_table(bfd *abfd, line_data *data)
     unsigned int symbol_size;
     n_symbols = bfd_read_minisymbols(abfd, false, tmp, &symbol_size);
     if (n_symbols == 0) {
+        // If the bfd_read_minisymbols() already allocated the table, we need
+        // to free it first:
+        if (data->symbol_table != NULL)
+            free(data->symbol_table);
         // dynamic
         n_symbols = bfd_read_minisymbols(abfd, true, tmp, &symbol_size);
     }
