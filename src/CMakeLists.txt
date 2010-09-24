@@ -74,10 +74,3 @@ ADD_LIBRARY(
   SHARED
   ${SOURCES}
 )
-
-if(HAVE_BFD)
-add_library(my_bfd STATIC IMPORTED)
-set_property(TARGET my_bfd PROPERTY IMPORTED_LOCATION
-    ${CMAKE_CURRENT_SOURCE_DIR}/../binutils-2.20.1/bfd/libbfd.a)
-target_link_libraries(teuchosmm iberty my_bfd z m)
-endif(HAVE_BFD)
