@@ -1496,7 +1496,7 @@ bfd_malloc_and_get_section (bfd *abfd, sec_ptr sec, bfd_byte **buf)
     return TRUE;
 
   p = (bfd_byte *)
-      bfd_malloc (sec->rawsize > sec->size ? sec->rawsize : sec->size);
+      bfd_zmalloc (sec->rawsize > sec->size ? sec->rawsize : sec->size);
   if (p == NULL)
     return FALSE;
   *buf = p;

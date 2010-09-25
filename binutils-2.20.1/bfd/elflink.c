@@ -899,6 +899,33 @@ elf_merge_st_other (bfd *abfd, struct elf_link_hash_entry *h,
     }
 }
 
+/* Mark if a symbol has a definition in a dynamic object or is
+   weak in all dynamic objects.  */
+
+static void
+_bfd_elf_mark_dynamic_def_weak (struct elf_link_hash_entry *h,
+				asection *sec, int bind)
+{
+  if (!h->dynamic_def)
+    {
+      if (!bfd_is_und_section (sec))
+	h->dynamic_def = 1;
+      else
+	{
+	  /* Check if this symbol is weak in all dynamic objects. If it
+	     is the first time we see it in a dynamic object, we mark
+	     if it is weak. Otherwise, we clear it.  */
+	  if (!h->ref_dynamic)
+	    {
+	      if (bind == STB_WEAK)
+		h->dynamic_weak = 1;
+	    }
+	  else if (bind != STB_WEAK)
+	    h->dynamic_weak = 0;
+	}
+    }
+}
+
 /* This function is called when we want to define a new symbol.  It
    handles the various cases which arise when we find a definition in
    a dynamic object, or when there is already a definition in a
@@ -927,6 +954,7 @@ _bfd_elf_merge_symbol (bfd *abfd,
 {
   asection *sec, *oldsec;
   struct elf_link_hash_entry *h;
+  struct elf_link_hash_entry *hi;
   struct elf_link_hash_entry *flip;
   int bind;
   bfd *oldbfd;
@@ -965,8 +993,9 @@ _bfd_elf_merge_symbol (bfd *abfd,
   if (!(*bed->relocs_compatible) (abfd->xvec, info->output_bfd->xvec))
     return TRUE;
 
-  /* For merging, we only care about real symbols.  */
-
+  /* For merging, we only care about real symbols.  But we need to make
+     sure that indirect symbol dynamic flags are updated.  */
+  hi = h;
   while (h->root.type == bfd_link_hash_indirect
 	 || h->root.type == bfd_link_hash_warning)
     h = (struct elf_link_hash_entry *) h->root.u.i.link;
@@ -1110,19 +1139,19 @@ _bfd_elf_merge_symbol (bfd *abfd,
 
       if (tdef && ntdef)
 	(*_bfd_error_handler)
-	  (_("%s: TLS definition in %B section %A mismatches non-TLS definition in %B section %A"),
+	  (_("%B: TLS definition in %B section %A mismatches non-TLS definition in %B section %A"),
 	   tbfd, tsec, ntbfd, ntsec, h->root.root.string);
       else if (!tdef && !ntdef)
 	(*_bfd_error_handler)
-	  (_("%s: TLS reference in %B mismatches non-TLS reference in %B"),
+	  (_("%B: TLS reference in %B mismatches non-TLS reference in %B"),
 	   tbfd, ntbfd, h->root.root.string);
       else if (tdef)
 	(*_bfd_error_handler)
-	  (_("%s: TLS definition in %B section %A mismatches non-TLS reference in %B"),
+	  (_("%B: TLS definition in %B section %A mismatches non-TLS reference in %B"),
 	   tbfd, tsec, ntbfd, h->root.root.string);
       else
 	(*_bfd_error_handler)
-	  (_("%s: TLS reference in %B mismatches non-TLS definition in %B section %A"),
+	  (_("%B: TLS reference in %B mismatches non-TLS definition in %B section %A"),
 	   tbfd, ntbfd, ntsec, h->root.root.string);
 
       bfd_set_error (bfd_error_bad_value);
@@ -1132,23 +1161,11 @@ _bfd_elf_merge_symbol (bfd *abfd,
   /* We need to remember if a symbol has a definition in a dynamic
      object or is weak in all dynamic objects. Internal and hidden
      visibility will make it unavailable to dynamic objects.  */
-  if (newdyn && !h->dynamic_def)
+  if (newdyn)
     {
-      if (!bfd_is_und_section (sec))
-	h->dynamic_def = 1;
-      else
-	{
-	  /* Check if this symbol is weak in all dynamic objects. If it
-	     is the first time we see it in a dynamic object, we mark
-	     if it is weak. Otherwise, we clear it.  */
-	  if (!h->ref_dynamic)
-	    {
-	      if (bind == STB_WEAK)
-		h->dynamic_weak = 1;
-	    }
-	  else if (bind != STB_WEAK)
-	    h->dynamic_weak = 0;
-	}
+      _bfd_elf_mark_dynamic_def_weak (h, sec, bind);
+      if (h != hi)
+	_bfd_elf_mark_dynamic_def_weak (hi, sec, bind);
     }
 
   /* If the old symbol has non-default visibility, we ignore the new
@@ -1160,6 +1177,7 @@ _bfd_elf_merge_symbol (bfd *abfd,
       *skip = TRUE;
       /* Make sure this symbol is dynamic.  */
       h->ref_dynamic = 1;
+      hi->ref_dynamic = 1;
       /* A protected symbol has external availability. Make sure it is
 	 recorded as dynamic.
 
@@ -1719,6 +1737,7 @@ _bfd_elf_add_default_symbol (bfd *abfd,
 	  if (! dynamic)
 	    {
 	      if (info->shared
+		  || hi->def_dynamic
 		  || hi->ref_dynamic)
 		*dynsym = TRUE;
 	    }
@@ -3858,6 +3877,7 @@ error_free_dyn:
       flagword flags;
       const char *name;
       struct elf_link_hash_entry *h;
+      struct elf_link_hash_entry *hi;
       bfd_boolean definition;
       bfd_boolean size_change_ok;
       bfd_boolean type_change_ok;
@@ -3866,6 +3886,7 @@ error_free_dyn:
       bfd_boolean common;
       unsigned int old_alignment;
       bfd *old_bfd;
+      bfd * undef_bfd = NULL;
 
       override = FALSE;
 
@@ -3990,6 +4011,20 @@ error_free_dyn:
 	  unsigned int vernum = 0;
 	  bfd_boolean skip;
 
+	  /* If this is a definition of a symbol which was previously
+	     referenced in a non-weak manner then make a note of the bfd
+	     that contained the reference.  This is used if we need to
+	     refer to the source of the reference later on.  */
+	  if (! bfd_is_und_section (sec))
+	    {
+	      h = elf_link_hash_lookup (elf_hash_table (info), name, FALSE, FALSE, FALSE);
+
+	      if (h != NULL
+		  && h->root.type == bfd_link_hash_undefined
+		  && h->root.u.undef.abfd)
+		undef_bfd = h->root.u.undef.abfd;
+	    }
+	  
 	  if (ever == NULL)
 	    {
 	      if (info->default_imported_symver)
@@ -4097,6 +4132,19 @@ error_free_dyn:
 	      name = newname;
 	    }
 
+	  /* If necessary, make a second attempt to locate the bfd
+	     containing an unresolved, non-weak reference to the
+	     current symbol.  */
+	  if (! bfd_is_und_section (sec) && undef_bfd == NULL)
+	    {
+	      h = elf_link_hash_lookup (elf_hash_table (info), name, FALSE, FALSE, FALSE);
+
+	      if (h != NULL
+		  && h->root.type == bfd_link_hash_undefined
+		  && h->root.u.undef.abfd)
+		undef_bfd = h->root.u.undef.abfd;
+	    }
+
 	  if (!_bfd_elf_merge_symbol (abfd, info, name, isym, &sec,
 				      &value, &old_alignment,
 				      sym_hash, &skip, &override,
@@ -4149,6 +4197,9 @@ error_free_dyn:
 	goto error_free_vers;
 
       h = *sym_hash;
+      /* We need to make sure that indirect symbol dynamic flags are
+	 updated.  */
+      hi = h;
       while (h->root.type == bfd_link_hash_indirect
 	     || h->root.type == bfd_link_hash_warning)
 	h = (struct elf_link_hash_entry *) h->root.u.i.link;
@@ -4340,22 +4391,36 @@ error_free_dyn:
 		      h->dynamic_def = 1;
 		    }
 		}
-	      if (! info->executable
-		  || h->def_dynamic
-		  || h->ref_dynamic)
+
+	      /* If the indirect symbol has been forced local, don't
+		 make the real symbol dynamic.  */
+	      if ((h == hi || !hi->forced_local)
+		  && (! info->executable
+		      || h->def_dynamic
+		      || h->ref_dynamic))
 		dynsym = TRUE;
 	    }
 	  else
 	    {
 	      if (! definition)
-		h->ref_dynamic = 1;
+		{
+		  h->ref_dynamic = 1;
+		  hi->ref_dynamic = 1;
+		}
 	      else
-		h->def_dynamic = 1;
-	      if (h->def_regular
-		  || h->ref_regular
-		  || (h->u.weakdef != NULL
-		      && ! new_weakdef
-		      && h->u.weakdef->dynindx != -1))
+		{
+		  h->def_dynamic = 1;
+		  hi->def_dynamic = 1;
+		}
+
+	      /* If the indirect symbol has been forced local, don't
+		 make the real symbol dynamic.  */
+	      if ((h == hi || !hi->forced_local)
+		  && (h->def_regular
+		      || h->ref_regular
+		      || (h->u.weakdef != NULL
+			  && ! new_weakdef
+			  && h->u.weakdef->dynindx != -1)))
 		dynsym = TRUE;
 	    }
 
@@ -4433,13 +4498,18 @@ error_free_dyn:
 	      /* A symbol from a library loaded via DT_NEEDED of some
 		 other library is referenced by a regular object.
 		 Add a DT_NEEDED entry for it.  Issue an error if
-		 --no-add-needed is used.  */
-	      if ((elf_dyn_lib_class (abfd) & DYN_NO_NEEDED) != 0)
+		 --no-add-needed is used and the reference was not
+		 a weak one.  */
+	      if (undef_bfd != NULL
+		  && (elf_dyn_lib_class (abfd) & DYN_NO_NEEDED) != 0)
 		{
 		  (*_bfd_error_handler)
-		    (_("%s: invalid DSO for symbol `%s' definition"),
+		    (_("%B: undefined reference to symbol '%s'"),
+		     undef_bfd, name);
+		  (*_bfd_error_handler)
+		    (_("note: '%s' is defined in DSO %B so try adding it to the linker command line"),
 		     abfd, name);
-		  bfd_set_error (bfd_error_bad_value);
+		  bfd_set_error (bfd_error_invalid_operation);
 		  goto error_free_vers;
 		}
 
@@ -4638,6 +4708,7 @@ error_free_dyn:
 	  asection *slook;
 	  bfd_vma vlook;
 	  long ilook;
+	  int tlook;
 	  size_t i, j, idx;
 
 	  hlook = weaks;
@@ -4650,6 +4721,7 @@ error_free_dyn:
 		      || hlook->root.type == bfd_link_hash_indirect);
 	  slook = hlook->root.u.def.section;
 	  vlook = hlook->root.u.def.value;
+	  tlook = hlook->type;
 
 	  ilook = -1;
 	  i = 0;
@@ -4687,9 +4759,10 @@ error_free_dyn:
 	    {
 	      h = sorted_sym_hash [i];
 
-	      /* Stop if value or section doesn't match.  */
+	      /* Stop if value, section or type doesn't match.  */
 	      if (h->root.u.def.value != vlook
-		  || h->root.u.def.section != slook)
+		  || h->root.u.def.section != slook
+		  || h->type != tlook)
 		break;
 	      else if (h != hlook)
 		{
@@ -8336,6 +8409,10 @@ elf_link_check_versioned_symbol (struct bfd_link_info *info,
   if (!is_elf_hash_table (info->hash))
     return FALSE;
 
+  /* Check indirect symbol.  */
+  while (h->root.type == bfd_link_hash_indirect)
+    h = (struct elf_link_hash_entry *) h->root.u.i.link;
+
   switch (h->root.type)
     {
     default:
@@ -8443,10 +8520,14 @@ elf_link_check_versioned_symbol (struct bfd_link_info *info,
 
 	  _bfd_elf_swap_versym_in (input, ever, &iver);
 
-	  if ((iver.vs_vers & VERSYM_HIDDEN) == 0)
+	  if ((iver.vs_vers & VERSYM_HIDDEN) == 0
+	      && !(h->def_regular
+		   && h->forced_local))
 	    {
 	      /* If we have a non-hidden versioned sym, then it should
-		 have provided a definition for the undefined sym.  */
+		 have provided a definition for the undefined sym unless
+		 it is defined in a non-shared object and forced local.
+	       */
 	      abort ();
 	    }
 
@@ -8546,11 +8627,17 @@ elf_link_output_extsym (struct elf_link_hash_entry *h, void *data)
       && !h->dynamic_weak
       && ! elf_link_check_versioned_symbol (finfo->info, bed, h))
     {
+      struct elf_link_hash_entry *hi = h;
+
+      /* Check indirect symbol.  */
+      while (hi->root.type == bfd_link_hash_indirect)
+	hi = (struct elf_link_hash_entry *) hi->root.u.i.link;
+
       (*_bfd_error_handler)
 	(_("%B: %s symbol `%s' in %B is referenced by DSO"),
 	 finfo->output_bfd,
-	 h->root.u.def.section == bfd_abs_section_ptr
-	 ? finfo->output_bfd : h->root.u.def.section->owner,
+	 hi->root.u.def.section == bfd_abs_section_ptr
+	 ? finfo->output_bfd : hi->root.u.def.section->owner,
 	 ELF_ST_VISIBILITY (h->other) == STV_INTERNAL
 	 ? "internal"
 	 : ELF_ST_VISIBILITY (h->other) == STV_HIDDEN
@@ -8770,6 +8857,23 @@ elf_link_output_extsym (struct elf_link_hash_entry *h, void *data)
       && elf_hash_table (finfo->info)->dynamic_sections_created)
     {
       bfd_byte *esym;
+
+      /* Since there is no version information in the dynamic string,
+	 if there is no version info in symbol version section, we will
+	 have a run-time problem.  */
+      if (h->verinfo.verdef == NULL)
+	{
+	  char *p = strrchr (h->root.root.string, ELF_VER_CHR);
+
+	  if (p && p [1] != '\0')
+	    {
+	      (*_bfd_error_handler)
+		(_("%B: No symbol version section for versioned symbol `%s'"),
+		 finfo->output_bfd, h->root.root.string);
+	      eoinfo->failed = TRUE;
+	      return FALSE;
+	    }
+	}
 
       sym.st_name = h->dynstr_index;
       esym = finfo->dynsym_sec->contents + h->dynindx * bed->s->sizeof_sym;
@@ -12495,7 +12599,7 @@ _bfd_elf_get_dynamic_reloc_section (bfd *       abfd,
    section does not exist it is created and attached to the DYNOBJ
    bfd and stored in the SRELOC field of SEC's elf_section_data
    structure.
-   
+
    ALIGNMENT is the alignment for the newly created section and
    IS_RELA defines whether the name should be .rela.<SEC's name>
    or .rel.<SEC's name>.  The section name is looked up in the

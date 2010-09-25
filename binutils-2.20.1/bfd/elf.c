@@ -627,6 +627,12 @@ setup_group (bfd *abfd, Elf_Internal_Shdr *hdr, asection *newsect)
 			      |= SEC_LINK_ONCE | SEC_LINK_DUPLICATES_DISCARD;
 			  break;
 			}
+
+		      /* Handle gap in section indices.  */
+		      if (bfd_has_gap_in_elf_shndx (abfd)
+			  && idx > (SHN_HIRESERVE & 0xffff))
+			idx -= ELF_SECTION_HEADER_INDEX_GAP;
+
 		      if (idx >= shnum)
 			{
 			  ((*_bfd_error_handler)
@@ -2853,6 +2859,13 @@ assign_section_numbers (bfd *abfd, struct bfd_link_info *link_info)
 	}
       t->strtab_section = section_number++;
       _bfd_elf_strtab_addref (elf_shstrtab (abfd), t->strtab_hdr.sh_name);
+    }
+
+  if (section_number >= SHN_LORESERVE)
+    {
+      _bfd_error_handler (_("%B: too many sections: %u"),
+			  abfd, section_number);
+      return FALSE;
     }
 
   _bfd_elf_strtab_finalize (elf_shstrtab (abfd));

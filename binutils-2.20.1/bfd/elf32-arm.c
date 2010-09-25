@@ -8886,12 +8886,12 @@ elf32_arm_relocate_section (bfd *                  output_bfd,
 	}
       else
 	{
-	  bfd_boolean warned;
+	  bfd_boolean warned, ignored;
 
 	  RELOC_FOR_GLOBAL_SYMBOL (info, input_bfd, input_section, rel,
 				   r_symndx, symtab_hdr, sym_hashes,
 				   h, sec, relocation,
-				   unresolved_reloc, warned);
+				   unresolved_reloc, warned, ignored);
 
 	  sym_type = h->type;
 	}
@@ -9110,6 +9110,8 @@ insert_cantunwind_after(asection *text_sec, asection *exidx_sec)
      2. Duplicate entries are merged together (EXIDX_CANTUNWIND, or unwind
         codes which have been inlined into the index).
 
+   If MERGE_EXIDX_ENTRIES is false, duplicate entries are not merged.
+
    The edits are applied when the tables are written
    (in elf32_arm_write_section).
 */
@@ -9117,7 +9119,8 @@ insert_cantunwind_after(asection *text_sec, asection *exidx_sec)
 bfd_boolean
 elf32_arm_fix_exidx_coverage (asection **text_section_order,
 			      unsigned int num_text_sections,
-			      struct bfd_link_info *info)
+			      struct bfd_link_info *info,
+			      bfd_boolean merge_exidx_entries)
 {
   bfd *inp;
   unsigned int last_second_word = 0, i;
@@ -9230,7 +9233,8 @@ elf32_arm_fix_exidx_coverage (asection **text_section_order,
 	  /* Inlined unwinding data.  Merge if equal to previous.  */
 	  else if ((second_word & 0x80000000) != 0)
 	    {
-	      if (last_second_word == second_word && last_unwind_type == 1)
+	      if (merge_exidx_entries
+		   && last_second_word == second_word && last_unwind_type == 1)
 		elide = 1;
 	      unwind_type = 1;
 	      last_second_word = second_word;

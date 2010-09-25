@@ -330,4 +330,8 @@ struct elf_segment_map
   (ELF_SECTION_SIZE(sec_hdr, segment) > 0			\
    && ELF_IS_SECTION_IN_SEGMENT (sec_hdr, segment))
 
+/* The gap in section indices created by the older linker before
+   bug fix for PR ld/5900.  */
+#define ELF_SECTION_HEADER_INDEX_GAP (SHN_HIRESERVE + 1 - SHN_LORESERVE)
+
 #endif /* _ELF_INTERNAL_H */

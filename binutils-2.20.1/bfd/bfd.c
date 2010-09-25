@@ -286,6 +286,9 @@ CODE_FRAGMENT
 .
 .  {* Set if this is a thin archive.  *}
 .  unsigned int is_thin_archive : 1;
+.
+.  {* Set if there is a gap in ELF section index.  *}
+.  unsigned int has_gap_in_elf_shndx : 1;
 .};
 .
 */

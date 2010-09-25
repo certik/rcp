@@ -1465,12 +1465,12 @@ elf32_cr16_relocate_section (bfd *output_bfd, struct bfd_link_info *info,
         }
       else
         {
-          bfd_boolean unresolved_reloc, warned;
+          bfd_boolean unresolved_reloc, warned, ignored;
 
           RELOC_FOR_GLOBAL_SYMBOL (info, input_bfd, input_section, rel,
                                    r_symndx, symtab_hdr, sym_hashes,
                                    h, sec, relocation,
-                                   unresolved_reloc, warned);
+                                   unresolved_reloc, warned, ignored);
         }
 
       r = cr16_elf_final_link_relocate (howto, input_bfd, output_bfd,

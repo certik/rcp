@@ -299,10 +299,11 @@ esac
 # Handle --enable-gold.
 
 AC_ARG_ENABLE(gold,
-[  --enable-gold           use gold instead of ld],
+[  --enable-gold[[=ARG]]     build gold [[ARG={yes,both}]]],
 ENABLE_GOLD=$enableval,
 ENABLE_GOLD=no)
-if test "${ENABLE_GOLD}" = "yes"; then
+case "${ENABLE_GOLD}" in 
+yes|both)
   # Check for ELF target.
   is_elf=no
   case "${target}" in
@@ -322,11 +323,17 @@ if test "${ENABLE_GOLD}" = "yes"; then
     # Check for target supported by gold.
     case "${target}" in
       i?86-*-* | x86_64-*-* | sparc*-*-* | powerpc*-*-* | arm*-*-*)
-        configdirs="`echo " ${configdirs} " | sed -e 's/ ld / gold /'`"
+        if test "${ENABLE_GOLD}" = both; then
+          configdirs="$configdirs gold"
+	else
+          configdirs="`echo " ${configdirs} " | sed -e 's/ ld / gold /'`"
+	fi
         ;;
     esac
   fi
-fi
+  ENABLE_GOLD=yes
+  ;;
+esac
 
 # Configure extra directories which are host specific
 

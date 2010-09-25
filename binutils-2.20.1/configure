@@ -1433,7 +1433,7 @@ Optional Features:
   --disable-option-checking  ignore unrecognized --enable/--with options
   --disable-FEATURE       do not include FEATURE (same as --enable-FEATURE=no)
   --enable-FEATURE[=ARG]  include FEATURE [ARG=yes]
-  --enable-gold           use gold instead of ld
+  --enable-gold[=ARG]     build gold [ARG={yes,both}]
   --enable-libada         build libada directory
   --enable-libssp         build libssp directory
   --enable-build-with-cxx build with C++ compiler instead of C compiler
@@ -2809,7 +2809,8 @@ else
   ENABLE_GOLD=no
 fi
 
-if test "${ENABLE_GOLD}" = "yes"; then
+case "${ENABLE_GOLD}" in
+yes|both)
   # Check for ELF target.
   is_elf=no
   case "${target}" in
@@ -2829,11 +2830,17 @@ if test "${ENABLE_GOLD}" = "yes"; then
     # Check for target supported by gold.
     case "${target}" in
       i?86-*-* | x86_64-*-* | sparc*-*-* | powerpc*-*-* | arm*-*-*)
-        configdirs="`echo " ${configdirs} " | sed -e 's/ ld / gold /'`"
+        if test "${ENABLE_GOLD}" = both; then
+          configdirs="$configdirs gold"
+	else
+          configdirs="`echo " ${configdirs} " | sed -e 's/ ld / gold /'`"
+	fi
         ;;
     esac
   fi
-fi
+  ENABLE_GOLD=yes
+  ;;
+esac
 
 # Configure extra directories which are host specific
 

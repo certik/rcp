@@ -1402,12 +1402,13 @@ mmix_elf_relocate_section (output_bfd, info, input_bfd, input_section,
 	}
       else
 	{
-	  bfd_boolean unresolved_reloc;
+	  bfd_boolean unresolved_reloc, ignored;
 
 	  RELOC_FOR_GLOBAL_SYMBOL (info, input_bfd, input_section, rel,
 				   r_symndx, symtab_hdr, sym_hashes,
 				   h, sec, relocation,
-				   unresolved_reloc, undefined_signalled);
+				   unresolved_reloc, undefined_signalled,
+				   ignored);
 	  name = h->root.root.string;
 	}
 
