@@ -1,5 +1,8 @@
+d=`pwd`/tmp/usr
 cd binutils-2.20.1/bfd/
-CFLAGS="-g -fPIC" ./configure --enable-shared --prefix=`pwd`/tmp/usr
+CFLAGS="-g -fPIC" ./configure --enable-shared --prefix="$d"
 make -j3
-make install
 #gcc -shared -o libbfd-d.so *.o
+make install
+cd $d/lib/
+ln -s libbfd-2.20.1.20100303.so libbfd-d.so
