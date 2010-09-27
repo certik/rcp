@@ -12,6 +12,8 @@ cd ..
 cd bfd
 CFLAGS="-g -fPIC" ./configure --enable-shared --prefix="$d"
 make -j3
+#gcc -shared -o libbfd-d.so *.o ../libiberty/*.o
+#gcc -shared -o libbfd-d.so *.o $d/lib/libiberty.a
 make install
 
 cd $d/lib/
