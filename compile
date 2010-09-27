@@ -1,19 +1,12 @@
 #! /bin/bash
 
+set +e
+
 d=`pwd`/tmp/usr
 cd binutils-2.20.1/
 
-cd libiberty
-CFLAGS="-g -fPIC" ./configure --prefix="$d"
+CFLAGS="-g -fPIC" ./configure --enable-shared --enable-plugins --prefix="$d"
 make -j3
-make install
-cd ..
-
-cd bfd
-CFLAGS="-g -fPIC" ./configure --enable-shared --prefix="$d"
-make -j3
-gcc -shared -o libbfd-d.so *.o ../libiberty/*.o -lz
-#gcc -shared -o libbfd-d.so *.o $d/lib/libiberty.a
 make install
 
 cd $d/lib/
