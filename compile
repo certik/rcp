@@ -5,9 +5,12 @@ set +e
 d=`pwd`/tmp/usr
 cd binutils-2.20.1/
 
-CFLAGS="-g -fPIC" ./configure --enable-shared --enable-plugins --prefix="$d"
+env CC="gcc" CXX="g++" CFLAGS="-g -O2 -Wno-format-security" \
+            ./configure --enable-shared --enable-plugins --prefix="$d" --build=x86_64-linux-gnu --host=x86_64-linux-gnu --with-pkgversion="GNU Binutils for Ubuntu" --enable-gold=both
 make -j3
 make install
 
-cd $d/lib/
-ln -s libbfd-2.20.1.20100303.so libbfd-d.so
+#cd $d/lib/
+#ln -s libbfd-2.20.1.20100303.so libbfd-d.so
+
+
